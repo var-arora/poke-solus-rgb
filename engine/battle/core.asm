@@ -4624,9 +4624,9 @@ JumpToOHKOMoveEffect:
 
 INCLUDE "data/battle/unused_critical_hit_moves.asm"
 
-; determines if attack is a critical hit
-; Azure Heights claims "the fastest pokémon (who are, not coincidentally,
-; among the most popular) tend to CH about 20 to 25% of the time."
+; The critical-hit threshold starts at half the species' base Speed.
+; High-critical-hit moves multiply it by 8, then Focus Energy by 4.
+; Each boost caps the threshold at 255 out of 256 possible random values.
 CriticalHitTest:
 	xor a
 	ld [wCriticalHitOrOHKO], a
@@ -4640,7 +4640,7 @@ CriticalHitTest:
 	call GetMonHeader
 	ld a, [wMonHBaseSpeed]
 	ld b, a
-	srl b                        ; (effective (base speed/2))
+	srl b                        ; base threshold: floor(base Speed / 2)
 	ldh a, [hWhoseTurn]
 	and a
 	ld hl, wPlayerMovePower
@@ -4654,16 +4654,6 @@ CriticalHitTest:
 	ret z                        ; do nothing if zero
 	dec hl
 	ld c, [hl]                   ; read move id
-	ld a, [de]
-	bit GETTING_PUMPED, a        ; test for focus energy
-	jr z, .noFocusEnergyUsed
-	sla b                        ; (effective (base speed/2)*2)
-	jr nc, .focusEnergyUsed
-	ld b, $ff                    ; cap at 255/256
-	jr .focusEnergyUsed
-.noFocusEnergyUsed
-	srl b
-.focusEnergyUsed
 	ld hl, HighCriticalMoves     ; table of high critical hit moves
 .Loop
 	ld a, [hli]                  ; read move from move table
@@ -4671,17 +4661,30 @@ CriticalHitTest:
 	jr z, .HighCritical          ; if so, the move about to be used is a high critical hit ratio move
 	inc a                        ; move on to the next move, FF terminates loop
 	jr nz, .Loop                 ; check the next move in HighCriticalMoves
-	srl b                        ; /2 for regular move (effective (base speed / 2))
-	jr .SkipHighCritical         ; continue as a normal move
+	jr .applyFocusEnergy         ; regular moves keep the base threshold
 .HighCritical
-	sla b                        ; *2 for high critical hit moves
+	sla b                        ; *2
 	jr nc, .noCarry
 	ld b, $ff                    ; cap at 255/256
 .noCarry
-	sla b                        ; *4 for high critical move (effective (base speed/2)*8))
-	jr nc, .SkipHighCritical
+	sla b                        ; *4
+	jr nc, .noCarry2
 	ld b, $ff
-.SkipHighCritical
+.noCarry2
+	sla b                        ; *8
+	jr nc, .applyFocusEnergy
+	ld b, $ff
+.applyFocusEnergy
+	ld a, [de]
+	bit GETTING_PUMPED, a
+	jr z, .roll
+	sla b                        ; Focus Energy: *2
+	jr c, .capProbability
+	sla b                        ; Focus Energy: *4
+	jr nc, .roll
+.capProbability
+	ld b, $ff
+.roll
 	call BattleRandom            ; generates a random value, in "a"
 	rlc a
 	rlc a

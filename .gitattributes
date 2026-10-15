@@ -11,6 +11,7 @@
 *.1bpp binary
 *.rle binary
 *.bst binary
+*.bps binary
 *.tilemap binary
 *.wav binary
 *.blk binary

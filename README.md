@@ -1,5 +1,9 @@
 # Pokémon Solus RGB
 
+This fork restores Gen 1's normal critical-hit rates and makes Focus Energy
+quadruple them, up to 255/256. For patched downloads, input ROM details, and test
+instructions, read the [critical-hit fix guide](docs/CRITICAL-HITS.md).
+
 <p align="center">
     <a href="https://github.com/Dechrissen/poke-solus-rgb/releases/latest"><img src="https://flat.badgen.net/github/release/dechrissen/poke-solus-rgb?icon=github&color=228B22" /></a>
     <a href=""><img src="https://flat.badgen.net/github/stars/dechrissen/poke-solus-rgb?icon=github&color=228B22" /></a>
@@ -11,7 +15,8 @@
 <img src="screenshots/box-front-solus-triple.png">
 </p>
 
-Just want the patch? [Download here][latest].  
+Just want the critical-hit fix? [Download a patch](docs/CRITICAL-HITS.md#download-and-apply-a-patch).
+
 Don't know where to start? Read the [beginner setup guide][howtoplay].
 
 ## Introduction
@@ -57,7 +62,7 @@ There are three versions of this romhack: _Solus Red_, _Solus Green_, and _Solus
 
 ### Patching a vanilla ROM
 
-To patch a vanilla Pokémon Red/Blue Version ROM, download a `.bps` patch file from the [releases page][releases], and then apply it to your ROM using [this online patcher](https://www.marcrobledo.com/RomPatcher.js/) or your patcher of choice.
+To patch a vanilla Pokémon Red/Blue Version ROM, download a `.bps` patch file from the [critical-hit fix guide](docs/CRITICAL-HITS.md#download-and-apply-a-patch), and then apply it to your ROM using [this online patcher](https://www.marcrobledo.com/RomPatcher.js/) or your patcher of choice.
 - For _Solus Red_ or _Solus Green_, patch a vanilla Pokémon Red ROM
 - For _Solus Blue_, patch a vanilla Pokémon Blue ROM
 

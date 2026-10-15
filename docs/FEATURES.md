@@ -351,7 +351,7 @@ DECHRISSEN
 
 #### Battle engine bugfixes
 - Transformed Pokémon are no longer assumed to be Ditto
-- Focus Energy no longer quarters critical hit chance (it now quadruples it instead, as intended)
+- Normal critical-hit rates match Gen 1. Focus Energy quadruples those rates, up to 255/256.
 - Status-curing items no longer remove stat modifiers in battle
 #### Graphical bugfixes
 - Sliding of trainer and Pokémon graphics on screen no longer cause screen tearing

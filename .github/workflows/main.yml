@@ -48,6 +48,13 @@ jobs:
             return 1
           fi
 
+      - name: Test critical-hit rates
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          python3 -m venv /tmp/solus-critical-hit-tests
+          /tmp/solus-critical-hit-tests/bin/pip install -r tests/requirements.txt
+          /tmp/solus-critical-hit-tests/bin/python tests/critical_hits.py pokesolusred.gbc pokesolusgreen.gbc pokesolusblue.gbc
+
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}
         env:
