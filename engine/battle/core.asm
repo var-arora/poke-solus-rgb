@@ -5301,9 +5301,23 @@ AdjustDamageForMoveType:
 	ld a, [wDamageMultipliers]
 	and $80
 	ld b, a
+	ld a, [wDamageMultipliers]
+	and $7f
+	ld c, a ; combined effectiveness so far, without the STAB flag
 	ld a, [hl] ; a = damage multiplier
 	ldh [hMultiplier], a
-	add b
+	and a
+	jr z, .storeEffectiveness ; immunity stays zero through any later modifier
+	cp EFFECTIVE
+	ld a, c
+	jr z, .storeEffectiveness
+	jr c, .resistedType
+	add a ; weakness: double the combined effectiveness
+	jr .storeEffectiveness
+.resistedType
+	srl a ; resistance: halve the combined effectiveness
+.storeEffectiveness
+	or b ; preserve the STAB flag separately from type effectiveness
 	ld [wDamageMultipliers], a
 	xor a
 	ldh [hMultiplicand], a

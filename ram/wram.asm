@@ -1215,9 +1215,11 @@ wBattleType:: db
 
 ; bits 0-6: Effectiveness
    ;  $0 = immune
+   ;  $2 = quarter damage (rounded down from 2.5)
    ;  $5 = not very effective
    ;  $a = neutral
    ; $14 = super-effective
+   ; $28 = four times damage
 ; bit 7: STAB
 wDamageMultipliers:: db
 

@@ -1,5 +1,9 @@
 # Critical-hit fix for Solus 1.5
 
+For the current build, which also fixes dual-type effectiveness messages and
+hit sounds, see the [gameplay fixes guide](GAMEPLAY-FIXES.md). The patches and
+ROM hashes on this page describe the earlier critical-hit-only build.
+
 This fork restores Gen 1's normal critical-hit rates. Focus Energy then
 quadruples the chance, up to 255/256 (about 99.6%). The fix applies to both sides
 of a battle and all three colors of Solus.

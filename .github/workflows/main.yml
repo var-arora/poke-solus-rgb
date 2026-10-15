@@ -69,6 +69,11 @@ jobs:
           make -C solus-1.5-original -j$(nproc) red blue green
           /tmp/solus-critical-hit-tests/bin/python tests/save_compatibility.py --original-dir solus-1.5-original
 
+      - name: Test effectiveness reporting and unchanged damage
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          /tmp/solus-critical-hit-tests/bin/python tests/type_effectiveness.py --original-dir solus-1.5-original
+
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}
         env:
