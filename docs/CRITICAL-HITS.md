@@ -34,9 +34,20 @@ All input and output ROMs are 1,048,576 bytes. These patches do not target other
 Solus releases or ROMs with additional changes. Patch-file SHA-256 checksums are
 in [SHA256SUMS](../patches/critical-hit-fix/SHA256SUMS).
 
-The save-data layout is unchanged. To continue a game, back up your in-game
-save file and give it the same base filename as the fixed ROM, as required by
-your emulator. Loading an existing save or emulator save state was not tested.
+## Continue an existing game
+
+Solus 1.5 in-game saves are compatible with this fix. The save-data layout,
+cartridge settings, and compiled save/load routines are unchanged.
+
+1. Make an in-game save in your current Solus ROM.
+2. Back up that save file, usually a `.sav` file.
+3. Patch the ROM. Keep the save file with the same base filename as the fixed
+   ROM, or import it with your emulator's save-file option.
+4. Start the fixed ROM and choose **Continue**.
+
+Emulator save states are separate from in-game saves. They store the running
+game, including code addresses that changed in this fix. Their compatibility
+is not guaranteed. Use an in-game save to move to the fixed ROM.
 
 ## What changed
 
@@ -99,6 +110,33 @@ the emulator's ROM copy; it does not edit the ROM file on disk.
 Each color passes 1,312,768 checks. The same test rejects unmodified Solus 1.5.
 The fixed ROMs also pass a normal boot through the title screen and main menu.
 These checks do not replace a full playthrough.
+
+The save-compatibility test creates disposable saves with each official 1.5
+ROM. It starts a new game, adds six Pokémon with the game's own routines, and
+sets test values for items, money, badges, Pokédex entries, and progress flags.
+It fills PC boxes with empty, partial, and full teams. It then checks:
+
+- All 2,621 RAM labels have the same addresses in both builds.
+- The complete ROM bank containing the save/load and box routines is identical.
+- Every saved field loads with its original value, apart from the map flag
+  that the original loader sets and the running clock's frame counter.
+- All 12 PC boxes can be loaded with their contents intact.
+- Saving in the fixed build produces the same complete 32 KiB save as saving
+  in the original build from the same loaded data.
+- That save reloads in both builds, and **Continue** reaches the saved map with
+  the party and progress intact, both before and after saving again.
+
+To run this check, build the unmodified upstream commit
+`95e157191e920162a24908cc95c358e73d294689` in a separate directory with RGBDS
+0.8.0. Keep its `.sym` files beside its ROMs. Then run:
+
+```sh
+/tmp/solus-critical-hit-tests/bin/python tests/save_compatibility.py \
+    --original-dir /path/to/unmodified-solus-build
+```
+
+The test checks the original ROM checksums before creating any test saves.
+CI builds that pinned source and runs the save checks for Red, Green, and Blue.
 
 The unmodified source at upstream commit `95e15719` builds byte-for-byte matches
 for all three official 1.5 release ROMs. Applying each new patch to its stated

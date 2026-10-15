@@ -55,6 +55,20 @@ jobs:
           /tmp/solus-critical-hit-tests/bin/pip install -r tests/requirements.txt
           /tmp/solus-critical-hit-tests/bin/python tests/critical_hits.py pokesolusred.gbc pokesolusgreen.gbc pokesolusblue.gbc
 
+      - name: Checkout original Solus 1.5 source
+        if: ${{ github.repository_owner != 'pret' }}
+        uses: actions/checkout@master
+        with:
+          repository: Dechrissen/poke-solus-rgb
+          ref: 95e157191e920162a24908cc95c358e73d294689
+          path: solus-1.5-original
+
+      - name: Test save compatibility
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          make -C solus-1.5-original -j$(nproc) red blue green
+          /tmp/solus-critical-hit-tests/bin/python tests/save_compatibility.py --original-dir solus-1.5-original
+
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}
         env:
