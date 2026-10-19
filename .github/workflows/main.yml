@@ -74,6 +74,11 @@ jobs:
         run: |
           /tmp/solus-critical-hit-tests/bin/python tests/type_effectiveness.py --original-dir solus-1.5-original
 
+      - name: Test automatic box changes and capture saves
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          /tmp/solus-critical-hit-tests/bin/python tests/auto_box.py --original-dir solus-1.5-original
+
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}
         env:

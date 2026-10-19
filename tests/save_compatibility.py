@@ -264,11 +264,16 @@ def check_color(original, fixed, color):
     old_symbols = read_symbols(original.with_suffix(".sym"))
     new_symbols = read_symbols(fixed.with_suffix(".sym"))
     ram_symbols = {name: value for name, value in old_symbols.items() if value[1] >= 0x8000}
-    assert ram_symbols == {name: value for name, value in new_symbols.items() if value[1] >= 0x8000}
-    # The complete ROM bank that holds the save/load and PC box routines must
-    # also match, including their machine code and called addresses.
+    assert ram_symbols == {name: new_symbols.get(name) for name in ram_symbols}, "Existing RAM labels moved"
+    added_ram = {name for name, value in new_symbols.items()
+                 if value[1] >= 0x8000 and name not in ram_symbols}
+    assert added_ram == {"wAutoBoxChangePending", "sAutoBoxBuffer", "sAutoBoxBufferEnd"}
+    # New helpers follow the original save bank's code. The original save/load
+    # and box routines must still match byte for byte.
     bank = old_symbols["LoadSAV"][0]
-    assert original_bytes[bank * 0x4000:(bank + 1) * 0x4000] == fixed_bytes[bank * 0x4000:(bank + 1) * 0x4000]
+    start = bank * 0x4000 + old_symbols["LoadSAV"][1] % 0x4000
+    end = bank * 0x4000 + new_symbols["FindNextBoxWithSpace"][1] % 0x4000
+    assert original_bytes[start:end] == fixed_bytes[start:end]
     save, expected, boxes = make_official_save(original)
     # LoadSAV0 always sets the map tileset's high bit, including in the official
     # ROM. Account for that documented loader behavior in the expected data.

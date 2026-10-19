@@ -122,7 +122,9 @@ ItemUseBall:
 	jr nz, .canUseBall
 	ld a, [wBoxCount] ; is box full?
 	cp MONS_PER_BOX
-	jp z, BoxFullCannotThrowBall
+	jr c, .canUseBall
+	farcall FindNextBoxWithSpace
+	jp c, BoxFullCannotThrowBall
 
 .canUseBall
 	xor a
@@ -557,6 +559,7 @@ ItemUseBall:
 
 .sendToBox
 	call ClearSprites
+	farcall AutoChangeBox
 	call SendNewMonToBox
 	ld hl, ItemUseBallText07
 	CheckEvent EVENT_MET_BILL

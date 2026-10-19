@@ -359,6 +359,9 @@ DECHRISSEN
 - The lower-right tile of Pokémon backsprites are no longer deleted when sliding offscreen
 - Psychic/Psywave/Night Shade's animation now correctly wiggles the top 3 screen lines
 #### Oversight / mistake fixes
+- Captures switch to the next box with space when the active box is full.
+  The game saves after the battle and map events finish. Existing Solus 1.5
+  saves remain compatible.
 - The Prof. Oak introduction movie no longer uses Nidorina's cry (it now uses Nidorino's, as intended)
 - Koffing's sprite is reverted to the JPN R/G variant to fix incorrect skull pattern location
 

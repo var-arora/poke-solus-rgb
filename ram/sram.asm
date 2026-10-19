@@ -11,7 +11,10 @@ sHallOfFame:: ds HOF_TEAM * HOF_TEAM_CAPACITY
 
 SECTION "Save Data", SRAM
 
-	ds $598
+; Temporary box copy. The saved game below stays intact during a capture.
+sAutoBoxBuffer:: ds wBoxDataEnd - wBoxDataStart
+sAutoBoxBufferEnd::
+	ds $598 - (wBoxDataEnd - wBoxDataStart)
 
 sGameData::
 sPlayerName::  ds NAME_LENGTH

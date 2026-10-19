@@ -1188,7 +1188,8 @@ wTrainerBaseMoney:: dw ; BCD
 
 wMissableObjectCounter:: db
 
-	ds 1
+; Previous box number + 1 while a caught Pokemon waits for a safe box save.
+wAutoBoxChangePending:: db
 
 ; 13 bytes for the letters of the opposing trainer
 ; the name is terminated with $50 with possible

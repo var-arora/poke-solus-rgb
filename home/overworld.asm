@@ -1823,7 +1823,7 @@ JoypadOverworld::
 	xor a
 	ld [wSpritePlayerStateData1YStepVector], a
 	ld [wSpritePlayerStateData1XStepVector], a
-	call RunMapScript
+	call RunMapScriptAndSaveAutoBox
 	call Joypad
 	ld a, [wStatusFlags7]
 	bit BIT_TRAINER_BATTLE, a
