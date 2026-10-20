@@ -3,7 +3,7 @@
 This fork restores Gen 1's normal critical-hit rates and makes Focus Energy
 quadruple them, up to 255/256. It also fixes effectiveness messages and hit
 sounds against dual-type Pokémon. Captures can also switch to the next box
-with space and save after the battle. The bag holds 60 item slots instead of 20.
+with space and save after the battle. The bag holds 40 item slots instead of 20.
 For downloads, save-transfer steps,
 and test instructions, read the [gameplay fixes guide](docs/GAMEPLAY-FIXES.md).
 

@@ -23,6 +23,9 @@ AddItemToInventory_::
 .checkIfInventoryFull
 	ld a, [hl]
 	sub d
+	jr c, .setRemainingCapacity
+	xor a ; full, including saves with more slots than the current limit
+.setRemainingCapacity
 	ld d, a
 	ld a, [hli]
 	and a

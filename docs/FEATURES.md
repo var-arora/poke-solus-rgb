@@ -369,7 +369,7 @@ DECHRISSEN
 
 ### New features that were not in the vanilla games
 #### Larger bag
-- The bag holds 60 item slots instead of 20. Existing saves import their items
+- The bag holds 40 item slots instead of 20. Existing saves import their items
   when loading. Each stack still holds up to 99, and the PC keeps its 50-slot limit.
 
 #### Field move slots

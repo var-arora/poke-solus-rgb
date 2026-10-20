@@ -9,7 +9,7 @@ This build includes:
   message and use the normal hit sound.
 - When the active box is full, a successful capture switches to the next box
   with space. The game saves after the battle and map events finish.
-- The bag holds 60 item slots instead of 20. Each slot still holds up to 99
+- The bag holds 40 item slots instead of 20. Each slot still holds up to 99
   items, and the PC still holds 50 item slots.
 
 The game still supports the original Game Boy. Its CGB header flag is `00`.
@@ -32,6 +32,11 @@ Download the patch with GitHub's **Download raw file** button. Apply it with
 [Floating IPS](https://github.com/Alcaro/Flips). BPS patchers check that the input
 ROM matches. Do not apply more than one patch from a row.
 
+For the earlier 60-slot build, use its update patch:
+[Red](../patches/gameplay-fixes/pokesolusred-60-slot-to-gameplay-fixes.bps),
+[Green](../patches/gameplay-fixes/pokesolusgreen-60-slot-to-gameplay-fixes.bps), or
+[Blue](../patches/gameplay-fixes/pokesolusblue-60-slot-to-gameplay-fixes.bps).
+
 Input ROM checksums:
 
 | Input | Red | Green | Blue |
@@ -41,6 +46,7 @@ Input ROM checksums:
 | Earlier critical-hit fix, CRC32 | `df7b71b6` | `86ccaecd` | `3545034f` |
 | Earlier critical-hit and type fixes, CRC32 | `24743609` | `f5452102` | `a921c774` |
 | Earlier automatic box fix, CRC32 | `33a2f3ed` | `b254a8c4` | `83f97551` |
+| Earlier 60-slot bag, CRC32 | `ecce1cfd` | `d318ffd2` | `8deec30a` |
 
 Patch-file SHA-256 checksums are in
 [SHA256SUMS](../patches/gameplay-fixes/SHA256SUMS).
@@ -66,7 +72,7 @@ Use an in-game save when changing ROM versions.
 
 ## Larger bag
 
-The bag has 60 slots. This includes key items and TMs, which still use the same
+The bag has 40 slots. This includes key items and TMs, which still use the same
 list as other items. Item use, buying, selling, tossing, swapping, gifts, and
 PC transfers use the larger bag. The limit per stack remains 99.
 
@@ -75,6 +81,11 @@ data. It stays inside the existing save checksum. A four-byte format marker
 distinguishes it from an old save. When the marker is absent, the loader copies
 the original bag, including item order and quantities, into the new area.
 Loading does not write to the save file. New games start with an empty bag.
+
+Saves from the earlier 60-slot build keep every item. If such a save has more
+than 40 slots in use, no new slot can be added until the count falls below 40.
+Existing stacks can still be used or increased, up to 99. The storage area stays
+the same size to keep these saves intact.
 
 Saving also keeps the first 20 slots in the original bag fields, with a valid
 count and terminator. Older ROMs can read those slots, but cannot maintain the
@@ -176,7 +187,8 @@ RGBDS version. Keep its `.sym` files beside its ROMs. Run:
     --original-dir /path/to/unmodified-solus-build
 /tmp/solus-tests/bin/python tests/expanded_bag.py \
     --original-dir /path/to/unmodified-solus-build \
-    --previous-dir /path/to/automatic-box-build
+    --previous-dir /path/to/automatic-box-build \
+    --larger-bag-dir /path/to/60-slot-build
 ```
 
 The effectiveness test runs the compiled damage-adjustment, message-selection,
@@ -207,16 +219,18 @@ in the original Solus 1.5 ROM. A complete playthrough test uses the real menus,
 capture animation, nickname prompt, box notice, automatic save, and Continue.
 
 The bag tests import empty and full 20-slot saves from official Solus 1.5 and
-the automatic-box build. They fill all 60 slots through the inventory code,
+the automatic-box build. They fill all 40 slots through the inventory code,
 check stack limits and the unchanged PC limit, remove and combine slots,
 swap the first and last slots, and check new-game setup. A real battle-menu
-playthrough scrolls to slot 60, uses its ball, finishes a capture and automatic
+playthrough scrolls to slot 40, uses its ball, finishes a capture and automatic
 box save, and checks every remaining item after Continue. Save checks allow
 changes only in the unused bag area and the main checksum when importing an
 old bag; all other saved fields and every PC box must match.
+Saves with all 60 slots from the earlier build also load without losing items;
+the tests check that they cannot add a new slot until fewer than 40 remain.
 
 | Updated ROM | CRC32 | SHA-256 |
 | --- | --- | --- |
-| Red | `ecce1cfd` | `7b80771617aa6f569b9f8466118d545cc3332c61137f8ffcc3af2d04e1ba45f5` |
-| Green | `d318ffd2` | `83576f02f817b6bf6f3f3f57e659ecd6ba5e84b177ef0430c1a45885080e8542` |
-| Blue | `8deec30a` | `77e687849f43f57e623e0e71e8c3f67d5ea694a2d1f00b876d1dee9f7a5c51f4` |
+| Red | `eed3741b` | `681bd49057b1b5395b4c233af6d2c7ae527e642ece614f7ca6ffe806ce11af08` |
+| Green | `6ff683cf` | `67d85115bf95ccad73df705e691f7be84a0107ce13f99c482b713c0e770d5adc` |
+| Blue | `34d313ee` | `ee2e59af1e9a83533cfdc3ccfe5644a6f8aacd18cdd838a027a46f0dcc5232cc` |

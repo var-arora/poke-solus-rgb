@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the 60-slot bag with game routines, menus, and disposable saves."""
+"""Check the 40-slot bag with game routines, menus, and disposable saves."""
 
 import argparse
 from pathlib import Path
@@ -9,8 +9,9 @@ from save_compatibility import Game, make_official_save, check_continue
 
 
 # Real item IDs, excluding the unused badge items and other dummy entries.
-ITEMS = ([2, 3, 4, 5, 6] + list(range(0x0A, 0x15)) + list(range(0x1D, 0x2C))
-         + list(range(0x2D, 0x32)) + list(range(0x33, 0x4C)))[:59] + [1]
+ALL_ITEMS = ([2, 3, 4, 5, 6] + list(range(0x0A, 0x15)) + list(range(0x1D, 0x2C))
+         + list(range(0x2D, 0x32)) + list(range(0x33, 0x4C)))
+ITEMS = ALL_ITEMS[:39] + [1]
 FULL_BAG = [(item, index % 98 + 1) for index, item in enumerate(ITEMS)]
 
 
@@ -83,12 +84,12 @@ def check_inventory(fixed, save):
         before = game.snapshot()
         set_bag(game, [])
         expected = []
-        # Add each slot through the actual inventory routine, including 21 and 60.
+        # Add each slot through the actual inventory routine, including 21 and 40.
         for item, quantity in FULL_BAG:
             assert add(game, item, quantity)
             expected.append((item, quantity))
             check_bag(game, expected)
-        assert not add(game, 0xC9), "Bag accepted a 61st slot"
+        assert not add(game, 0xC9), "Bag accepted a 41st slot"
         check_bag(game, expected)
         item, quantity = expected[-1]
         assert add(game, item, 99 - quantity), "A full bag rejected an existing stack"
@@ -97,7 +98,7 @@ def check_inventory(fixed, save):
         assert not add(game, item), "Full stack overflowed a full bag"
         check_bag(game, expected)
         # Remove the final slot, then a middle slot. Check the complete order.
-        remove(game, 59, 99)
+        remove(game, 39, 99)
         expected.pop()
         check_bag(game, expected)
         remove(game, 20, expected[20][1])
@@ -117,10 +118,10 @@ def check_inventory(fixed, save):
         assert game.emulator.register_file.B == 3
         # The PC still holds 50 item slots, using its original storage.
         game.write("wNumBoxItems", bag_bytes([]))
-        for item in ITEMS[:50]:
+        for item in ALL_ITEMS[:50]:
             assert add(game, item, pc=True)
         assert not add(game, 0xC9, pc=True)
-        assert game.read("wNumBoxItems", 102) == bag_bytes([(item, 1) for item in ITEMS[:50]])
+        assert game.read("wNumBoxItems", 102) == bag_bytes([(item, 1) for item in ALL_ITEMS[:50]])
         # Inventory changes must not overwrite money, flags, or Pokemon data.
         after = game.snapshot()
         main = bytearray(after["main"])
@@ -170,8 +171,8 @@ def check_swapping(fixed, save):
         game.write("wListPointer", game.address("wNumBagItems").to_bytes(2, "little"))
         game.write("wListMenuID", 3)  # ITEMLISTMENU
         game.write("wCurrentMenuItem", 2)
-        game.write("wListScrollOffset", 57)
-        game.write("wMenuItemToSwap", 1)  # slot 1, with slot 60 selected
+        game.write("wListScrollOffset", 37)
+        game.write("wMenuItemToSwap", 1)  # slot 1, with slot 40 selected
         stub(game, "DelayFrames")
         stub(game, "DisplayListMenuIDLoop")
         game.call("HandleItemListSwapping")
@@ -180,11 +181,11 @@ def check_swapping(fixed, save):
         check_bag(game, expected)
         # Combining two matching slots must close the gap beyond slot 20.
         expected[20] = (1, 2)
-        expected[59] = (1, 3)
+        expected[39] = (1, 3)
         set_bag(game, expected)
         game.write("wMenuItemToSwap", 21)
         game.call("HandleItemListSwapping")
-        expected[59] = (1, 5)
+        expected[39] = (1, 5)
         expected.pop(20)
         check_bag(game, expected)
     finally:
@@ -236,7 +237,7 @@ def check_capture_save(fixed, save):
         before = cartridge_ram(game)
         game.write("wIsInBattle", 1)
         game.write("wcf91", 1)
-        game.write("wWhichPokemon", 59)
+        game.write("wWhichPokemon", 39)
         game.write("wEnemyMonSpecies2", 0x99)
         game.write("wCurEnemyLevel", 10)
         game.call("LoadEnemyMonData")
@@ -269,7 +270,45 @@ def check_capture_save(fixed, save):
         reloaded.stop()
 
 
-def check_color(original, previous, fixed, color):
+def check_larger_save(larger, fixed):
+    game = Game(larger)
+    try:
+        game.open_main_menu()
+        game.wait_for("OverworldLoop", button="a")
+        items = [(item, 2) for item in ALL_ITEMS[:59]] + [(1, 3)]
+        set_bag(game, items)
+        game.call("SaveSAVtoSRAM")
+        save = game.stop(save=True)
+    finally:
+        game.stop()
+    game = Game(fixed, save)
+    try:
+        load(game)
+        check_bag(game, items)
+        assert not add(game, 0xC9), "An overfull old bag accepted a new slot"
+        assert add(game, 1), "An overfull old bag rejected an existing stack"
+        items[-1] = (1, 4)
+        check_bag(game, items)
+        game.call("SaveSAVtoSRAM")
+        saved = cartridge_ram(game)
+        reloaded = Game(fixed, saved)
+        try:
+            load(reloaded)
+            check_bag(reloaded, items)
+        finally:
+            reloaded.stop()
+        while len(items) > 39:
+            remove(game, len(items) - 1, items[-1][1])
+            items.pop()
+        assert add(game, 0xC9)
+        items.append((0xC9, 1))
+        check_bag(game, items)
+        assert not add(game, 0xCA), "Bag exceeded 40 slots after reducing an old bag"
+    finally:
+        game.stop()
+
+
+def check_color(original, previous, larger, fixed, color):
     check_old_saves(original, fixed)
     check_old_saves(previous, fixed)
     save, _, _ = make_official_save(original)
@@ -279,7 +318,8 @@ def check_color(original, previous, fixed, color):
     check_new_game(fixed, full)
     check_capture_save(fixed, save)
     check_playthrough(fixed, save, bag_bytes(FULL_BAG))
-    print(f"{color}: old saves import; 60 slots, stack limits, removal, gifts, "
+    check_larger_save(larger, fixed)
+    print(f"{color}: old saves import; 40 slots, stack limits, removal, gifts, "
           "PC limit, Continue, automatic saves, and real battle menus passed", flush=True)
 
 
@@ -287,8 +327,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--original-dir", type=Path, required=True)
     parser.add_argument("--previous-dir", type=Path, required=True)
+    parser.add_argument("--larger-bag-dir", type=Path, required=True)
     parser.add_argument("--fixed-dir", type=Path, default=Path.cwd())
     args = parser.parse_args()
     for color in ("red", "green", "blue"):
         name = f"pokesolus{color}.gbc"
-        check_color(args.original_dir / name, args.previous_dir / name, args.fixed_dir / name, color)
+        check_color(args.original_dir / name, args.previous_dir / name,
+                    args.larger_bag_dir / name, args.fixed_dir / name, color)

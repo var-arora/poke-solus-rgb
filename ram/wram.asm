@@ -2012,7 +2012,7 @@ NEXTU
 wBagSaveVersion:: ds 4
 wNumBagItems:: db
 ; item, quantity
-wBagItems:: ds BAG_ITEM_CAPACITY * 2 + 1
+wBagItems:: ds BAG_ITEM_STORAGE_CAPACITY * 2 + 1
 wExpandedBagEnd::
 	ASSERT wExpandedBagEnd - wBagSaveVersion <= 134
 	ds 134 - (wExpandedBagEnd - wBagSaveVersion)

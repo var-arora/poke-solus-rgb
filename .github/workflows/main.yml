@@ -90,7 +90,11 @@ jobs:
       - name: Test the larger bag and old-save import
         if: ${{ github.repository_owner != 'pret' }}
         run: |
-          /tmp/solus-critical-hit-tests/bin/python tests/expanded_bag.py --original-dir solus-1.5-original --previous-dir solus-auto-box-original
+          mkdir solus-60-slot-original
+          git fetch origin eae0eb4eb0857f8f94da3dba9473b10ef1852177
+          git archive eae0eb4eb0857f8f94da3dba9473b10ef1852177 | tar -x -C solus-60-slot-original
+          make -C solus-60-slot-original -j$(nproc) red blue green
+          /tmp/solus-critical-hit-tests/bin/python tests/expanded_bag.py --original-dir solus-1.5-original --previous-dir solus-auto-box-original --larger-bag-dir solus-60-slot-original
 
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}

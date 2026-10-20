@@ -297,11 +297,11 @@ def check_playthrough(fixed, base_save, bag=None):
             wait_until(lambda: "DisplayListMenuIDLoop" in seen)
             for _ in range(120):
                 selected = game.read("wListScrollOffset")[0] + game.read("wCurrentMenuItem")[0]
-                if selected == 59:
+                if selected == 39:
                     break
                 game.emulator.button("down")
                 game.emulator.tick(12, False)
-            assert selected == 59, "Could not scroll to bag slot 60"
+            assert selected == 39, "Could not scroll to bag slot 40"
         wait_until(lambda: "ItemUseBall" in seen, "a")
         wait_until(lambda: "AskName" in seen, "a")
         game.emulator.tick(30, False)
@@ -318,7 +318,7 @@ def check_playthrough(fixed, base_save, bag=None):
         assert game.read("wIsInBattle") == b"\x00"
         if bag:
             expected_bag = bytearray(bag)
-            expected_bag[120] -= 1  # quantity in slot 60
+            expected_bag[80] -= 1  # quantity in slot 40
             assert game.read("wNumBagItems", len(bag)) == bytes(expected_bag)
         game.emulator.button("a")
         game.emulator.tick(60, False)
