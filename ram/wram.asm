@@ -1710,9 +1710,9 @@ wPokedexOwnedEnd::
 wPokedexSeen:: flag_array NUM_POKEMON
 wPokedexSeenEnd::
 
-wNumBagItems:: db
-; item, quantity
-wBagItems:: ds BAG_ITEM_CAPACITY * 2 + 1
+; Keep the original bag fields for older saves and ROMs.
+wLegacyNumBagItems:: db
+wLegacyBagItems:: ds LEGACY_BAG_ITEM_CAPACITY * 2 + 1
 
 wPlayerMoney:: ds 3 ; BCD
 
@@ -1999,11 +1999,24 @@ wSeafoamIslandsB3FCurScript:: db
 wRoute23CurScript:: db
 wSeafoamIslandsB4FCurScript:: db
 wRoute18Gate1FCurScript:: db
+
+UNION
 	ds 78
 
 wGameProgressFlagsEnd::
 
 	ds 56
+NEXTU
+; These 134 bytes were unused. The larger bag remains inside the main save
+; checksum without moving any other field.
+wBagSaveVersion:: ds 4
+wNumBagItems:: db
+; item, quantity
+wBagItems:: ds BAG_ITEM_CAPACITY * 2 + 1
+wExpandedBagEnd::
+	ASSERT wExpandedBagEnd - wBagSaveVersion <= 134
+	ds 134 - (wExpandedBagEnd - wBagSaveVersion)
+ENDU
 
 wObtainedHiddenItemsFlags:: flag_array MAX_HIDDEN_ITEMS
 

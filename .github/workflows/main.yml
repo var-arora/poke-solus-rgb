@@ -79,6 +79,19 @@ jobs:
         run: |
           /tmp/solus-critical-hit-tests/bin/python tests/auto_box.py --original-dir solus-1.5-original
 
+      - name: Checkout and build the earlier automatic-box version
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          mkdir solus-auto-box-original
+          git fetch origin 4d2fe7731a8f814e2cbb3926c6b0aa9e9632a16f
+          git archive 4d2fe7731a8f814e2cbb3926c6b0aa9e9632a16f | tar -x -C solus-auto-box-original
+          make -C solus-auto-box-original -j$(nproc) red blue green
+
+      - name: Test the larger bag and old-save import
+        if: ${{ github.repository_owner != 'pret' }}
+        run: |
+          /tmp/solus-critical-hit-tests/bin/python tests/expanded_bag.py --original-dir solus-1.5-original --previous-dir solus-auto-box-original
+
       - name: Discord webhook
         if: ${{ github.event_name == 'push' && github.repository_owner == 'pret' }}
         env:

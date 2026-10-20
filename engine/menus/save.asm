@@ -64,7 +64,7 @@ LoadSAV0:
 	ld hl, sMainData
 	ld de, wMainDataStart
 	ld bc, wMainDataEnd - wMainDataStart
-	call CopyData
+	call LoadMainDataAndBag
 	ld hl, wCurMapTileset
 	set 7, [hl]
 	ld hl, sSpriteData
@@ -210,7 +210,7 @@ SaveSAVtoSRAM0:
 	ld hl, wMainDataStart
 	ld de, sMainData
 	ld bc, wMainDataEnd - wMainDataStart
-	call CopyData
+	call SaveMainDataAndBag
 	ld hl, wSpriteDataStart
 	ld de, sSpriteData
 	ld bc, wSpriteDataEnd - wSpriteDataStart

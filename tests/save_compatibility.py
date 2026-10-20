@@ -121,6 +121,33 @@ def check_snapshot(actual, expected, stage):
     assert not differences, f"{stage}: saved fields differ at byte offsets {differences}"
 
 
+def imported_bag_snapshot(original, fixed, expected):
+    """Describe the only main-data changes needed to import an old bag."""
+    old = read_symbols(original.with_suffix(".sym"))
+    new = read_symbols(fixed.with_suffix(".sym"))
+    main = bytearray(expected["main"])
+    old_start = old["wNumBagItems"][1] - old["wMainDataStart"][1]
+    new_start = new["wNumBagItems"][1] - new["wMainDataStart"][1]
+    version = new["wBagSaveVersion"][1] - new["wMainDataStart"][1]
+    main[new_start:new_start + 42] = main[old_start:old_start + 42]
+    main[version:version + 4] = b"BAG\x01"
+    return dict(expected, main=bytes(main))
+
+
+def check_bag_import_bytes(original, fixed, old_save, new_save):
+    """Allow changes only in the old unused bytes and the main checksum."""
+    symbols = read_symbols(fixed.with_suffix(".sym"))
+    offset = 0x2000 + symbols["sMainData"][1] - 0xA000 - symbols["wMainDataStart"][1]
+    start = offset + symbols["wBagSaveVersion"][1]
+    end = offset + symbols["wExpandedBagEnd"][1]
+    checksum = 0x2000 + symbols["sMainDataCheckSum"][1] - 0xA000
+    expected = bytearray(old_save)
+    expected[start:end] = new_save[start:end]
+    expected[checksum] = new_save[checksum]
+    assert bytes(expected) == new_save, "Saving changed a field outside the larger bag"
+    assert new_save[checksum] == (~sum(new_save[0x2598:checksum]) & 0xFF)
+
+
 def make_box(game, number):
     size = game.address("wBoxDataEnd") - game.address("wBoxDataStart")
     data = bytearray(size)
@@ -232,13 +259,21 @@ def check_continue(rom, save, expected):
                 break
         game.emulator.hook_deregister(bank, address)
         assert snapshots, "Continue menu was not reached"
-        # The running game clock can advance a few frames after the load. Keep
-        # checking its hours, minutes, and seconds, but allow the frame counter.
+        # Loading and drawing the menu take a few frames. Compare total time
+        # so a frame-counter rollover can also advance the saved seconds.
         actual = snapshots[0]
         main = bytearray(actual["main"])
-        frame = game.address("wPlayTimeFrames") - game.address("wMainDataStart")
-        assert main[frame] < 60, "Invalid play-time frame counter"
-        main[frame] = expected["main"][frame]
+        offsets = [game.address(name) - game.address("wMainDataStart")
+                   for name in ("wPlayTimeHours", "wPlayTimeMinutes", "wPlayTimeSeconds", "wPlayTimeFrames")]
+        old_time, new_time = ([data[offset] for offset in offsets]
+                              for data in (expected["main"], main))
+        assert all(value < 60 for value in new_time[1:]), "Invalid play time"
+        def frames(values):
+            hours, minutes, seconds, frame = values
+            return ((hours * 60 + minutes) * 60 + seconds) * 60 + frame
+        assert 0 <= frames(new_time) - frames(old_time) <= 60, "Saved play time changed"
+        for offset in offsets:
+            main[offset] = expected["main"][offset]
         actual["main"] = bytes(main)
         check_snapshot(actual, expected, "Continue menu")
         assert game.read("wSaveFileStatus") == b"\x02", "Continue did not recognize the save"
@@ -264,16 +299,31 @@ def check_color(original, fixed, color):
     old_symbols = read_symbols(original.with_suffix(".sym"))
     new_symbols = read_symbols(fixed.with_suffix(".sym"))
     ram_symbols = {name: value for name, value in old_symbols.items() if value[1] >= 0x8000}
-    assert ram_symbols == {name: new_symbols.get(name) for name in ram_symbols}, "Existing RAM labels moved"
+    moved = {name for name in ram_symbols if new_symbols.get(name) != ram_symbols[name]}
+    assert moved == {"wNumBagItems", "wBagItems"}, f"Unexpected moved RAM labels: {moved}"
+    assert new_symbols["wLegacyNumBagItems"] == old_symbols["wNumBagItems"]
+    assert new_symbols["wLegacyBagItems"] == old_symbols["wBagItems"]
+    assert new_symbols["wBagSaveVersion"][1] == 0xD66A
+    assert new_symbols["wExpandedBagEnd"][1] <= 0xD6F0
     added_ram = {name for name, value in new_symbols.items()
                  if value[1] >= 0x8000 and name not in ram_symbols}
-    assert added_ram == {"wAutoBoxChangePending", "sAutoBoxBuffer", "sAutoBoxBufferEnd"}
-    # New helpers follow the original save bank's code. The original save/load
-    # and box routines must still match byte for byte.
+    assert added_ram == {"wAutoBoxChangePending", "sAutoBoxBuffer", "sAutoBoxBufferEnd",
+                         "wLegacyNumBagItems", "wLegacyBagItems", "wBagSaveVersion", "wExpandedBagEnd"}
+    # Only the two main-data copy calls change inside the original save code.
+    # All other save/load and box instructions must still match byte for byte.
     bank = old_symbols["LoadSAV"][0]
     start = bank * 0x4000 + old_symbols["LoadSAV"][1] % 0x4000
     end = bank * 0x4000 + new_symbols["FindNextBoxWithSpace"][1] % 0x4000
-    assert original_bytes[start:end] == fixed_bytes[start:end]
+    expected_code = bytearray(original_bytes[start:end])
+    for old_name, new_name in (("LoadSAV0", "LoadMainDataAndBag"),
+                               ("SaveSAVtoSRAM0", "SaveMainDataAndBag")):
+        entry = old_symbols[old_name][1] - old_symbols["LoadSAV"][1]
+        copy = old_symbols["CopyData"][1].to_bytes(2, "little")
+        target = b"\xcd" + copy
+        first = expected_code.index(target, entry)
+        second = expected_code.index(target, first + 3)
+        expected_code[second + 1:second + 3] = new_symbols[new_name][1].to_bytes(2, "little")
+    assert bytes(expected_code) == fixed_bytes[start:end]
     save, expected, boxes = make_official_save(original)
     # LoadSAV0 always sets the map tileset's high bit, including in the official
     # ROM. Account for that documented loader behavior in the expected data.
@@ -281,15 +331,16 @@ def check_color(original, fixed, color):
     data[new_symbols["wCurMapTileset"][1] - new_symbols["wMainDataStart"][1]] |= 0x80
     expected["main"] = bytes(data)
     original_resave = check_load_and_save(original, save, expected)
-    fixed_resave = check_load_and_save(fixed, save, expected)
-    assert original_resave == fixed_resave, "Saving changed cartridge RAM contents"
-    assert check_load_and_save(original, fixed_resave, expected) == fixed_resave
-    assert check_load_and_save(fixed, fixed_resave, expected) == fixed_resave
+    imported = imported_bag_snapshot(original, fixed, expected)
+    fixed_resave = check_load_and_save(fixed, save, imported)
+    check_bag_import_bytes(original, fixed, original_resave, fixed_resave)
+    assert check_load_and_save(original, fixed_resave, imported) == fixed_resave
+    assert check_load_and_save(fixed, fixed_resave, imported) == fixed_resave
     check_boxes(fixed, save, boxes)
-    check_continue(fixed, save, expected)
-    check_continue(fixed, fixed_resave, expected)
-    print(f"{color}: {len(ram_symbols):,} RAM labels unchanged; official save loads, "
-          "all 12 boxes work, 32 KiB resave matches, and Continue works before and after saving")
+    check_continue(fixed, save, imported)
+    check_continue(fixed, fixed_resave, imported)
+    print(f"{color}: only the bag moves into unused RAM; official items import, "
+          "other saved fields and all 12 boxes match, and Continue works before and after saving")
 
 
 if __name__ == "__main__":

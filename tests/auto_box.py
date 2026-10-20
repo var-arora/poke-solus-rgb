@@ -237,15 +237,24 @@ def check_failed_throw(fixed, save):
         game.stop()
 
 
-def check_playthrough(fixed, base_save):
+def check_playthrough(fixed, base_save, bag=None):
     counts = [20] * 12
     counts[11] = 19
     save, _ = fixture(fixed, base_save, 10, counts)
+    if bag:
+        prepared = Game(fixed, save)
+        try:
+            load(prepared)
+            prepared.write("wNumBagItems", bag)
+            prepared.call("SaveSAVtoSRAM")
+            save = prepared.stop(save=True)
+        finally:
+            prepared.stop()
     game = Game(fixed, save)
     seen, message, displays = set(), [], []
     try:
         # Run the whole game with real menus, text, graphics, sound, and timing.
-        for name in ("DisplayBattleMenu", "ItemUseBall", "AskName", "FinishAutoBoxChange"):
+        for name in ("DisplayBattleMenu", "DisplayListMenuIDLoop", "ItemUseBall", "AskName", "FinishAutoBoxChange"):
             game.emulator.hook_register(*game.symbols[name], lambda _, n=name: seen.add(n), None)
 
         def text_started(_):
@@ -284,6 +293,15 @@ def check_playthrough(fixed, base_save):
         game.emulator.tick(12, False)
         game.emulator.button("a")
         game.emulator.tick(30, False)
+        if bag:
+            wait_until(lambda: "DisplayListMenuIDLoop" in seen)
+            for _ in range(120):
+                selected = game.read("wListScrollOffset")[0] + game.read("wCurrentMenuItem")[0]
+                if selected == 59:
+                    break
+                game.emulator.button("down")
+                game.emulator.tick(12, False)
+            assert selected == 59, "Could not scroll to bag slot 60"
         wait_until(lambda: "ItemUseBall" in seen, "a")
         wait_until(lambda: "AskName" in seen, "a")
         game.emulator.tick(30, False)
@@ -298,12 +316,18 @@ def check_playthrough(fixed, base_save):
         assert game.read("wBoxCount") == b"\x14"
         assert game.read("wAutoBoxChangePending") == b"\x00"
         assert game.read("wIsInBattle") == b"\x00"
+        if bag:
+            expected_bag = bytearray(bag)
+            expected_bag[120] -= 1  # quantity in slot 60
+            assert game.read("wNumBagItems", len(bag)) == bytes(expected_bag)
         game.emulator.button("a")
         game.emulator.tick(60, False)
         saved = cartridge_ram(game)
         reloaded = Game(fixed, saved)
         try:
             load(reloaded)
+            if bag:
+                assert reloaded.read("wNumBagItems", len(bag)) == bytes(expected_bag)
             expected = reloaded.snapshot()
         finally:
             reloaded.stop()

@@ -9,6 +9,8 @@ This build includes:
   message and use the normal hit sound.
 - When the active box is full, a successful capture switches to the next box
   with space. The game saves after the battle and map events finish.
+- The bag holds 60 item slots instead of 20. Each slot still holds up to 99
+  items, and the PC still holds 50 item slots.
 
 The game still supports the original Game Boy. Its CGB header flag is `00`.
 The source build keeps upstream's `.gbc` filenames; a byte-identical copy can
@@ -19,11 +21,11 @@ use `.gb` without changing the game.
 Choose the column that matches your input ROM. Every patch in a row produces
 the same updated ROM for that color. All inputs and outputs are 1,048,576 bytes.
 
-| Version | Clean original ROM | Official Solus 1.5 | Earlier critical-hit fix | Earlier critical-hit and type fixes |
-| --- | --- | --- | --- | --- |
-| Red | [Red patch](../patches/gameplay-fixes/pokesolusred-1.5-gameplay-fixes.bps), for Pokémon Red | [Red update](../patches/gameplay-fixes/pokesolusred-1.5-to-gameplay-fixes.bps) | [Red update](../patches/gameplay-fixes/pokesolusred-crit-fix-to-gameplay-fixes.bps) | [Red update](../patches/gameplay-fixes/pokesolusred-crit-and-type-fixes-to-gameplay-fixes.bps) |
-| Green | [Green patch](../patches/gameplay-fixes/pokesolusgreen-1.5-gameplay-fixes.bps), for Pokémon Red | [Green update](../patches/gameplay-fixes/pokesolusgreen-1.5-to-gameplay-fixes.bps) | [Green update](../patches/gameplay-fixes/pokesolusgreen-crit-fix-to-gameplay-fixes.bps) | [Green update](../patches/gameplay-fixes/pokesolusgreen-crit-and-type-fixes-to-gameplay-fixes.bps) |
-| Blue | [Blue patch](../patches/gameplay-fixes/pokesolusblue-1.5-gameplay-fixes.bps), for Pokémon Blue | [Blue update](../patches/gameplay-fixes/pokesolusblue-1.5-to-gameplay-fixes.bps) | [Blue update](../patches/gameplay-fixes/pokesolusblue-crit-fix-to-gameplay-fixes.bps) | [Blue update](../patches/gameplay-fixes/pokesolusblue-crit-and-type-fixes-to-gameplay-fixes.bps) |
+| Version | Clean original ROM | Official Solus 1.5 | Earlier critical-hit fix | Earlier critical-hit and type fixes | Earlier automatic box fix |
+| --- | --- | --- | --- | --- | --- |
+| Red | [Red patch](../patches/gameplay-fixes/pokesolusred-1.5-gameplay-fixes.bps), for Pokémon Red | [Red update](../patches/gameplay-fixes/pokesolusred-1.5-to-gameplay-fixes.bps) | [Red update](../patches/gameplay-fixes/pokesolusred-crit-fix-to-gameplay-fixes.bps) | [Red update](../patches/gameplay-fixes/pokesolusred-crit-and-type-fixes-to-gameplay-fixes.bps) | [Red update](../patches/gameplay-fixes/pokesolusred-auto-box-to-gameplay-fixes.bps) |
+| Green | [Green patch](../patches/gameplay-fixes/pokesolusgreen-1.5-gameplay-fixes.bps), for Pokémon Red | [Green update](../patches/gameplay-fixes/pokesolusgreen-1.5-to-gameplay-fixes.bps) | [Green update](../patches/gameplay-fixes/pokesolusgreen-crit-fix-to-gameplay-fixes.bps) | [Green update](../patches/gameplay-fixes/pokesolusgreen-crit-and-type-fixes-to-gameplay-fixes.bps) | [Green update](../patches/gameplay-fixes/pokesolusgreen-auto-box-to-gameplay-fixes.bps) |
+| Blue | [Blue patch](../patches/gameplay-fixes/pokesolusblue-1.5-gameplay-fixes.bps), for Pokémon Blue | [Blue update](../patches/gameplay-fixes/pokesolusblue-1.5-to-gameplay-fixes.bps) | [Blue update](../patches/gameplay-fixes/pokesolusblue-crit-fix-to-gameplay-fixes.bps) | [Blue update](../patches/gameplay-fixes/pokesolusblue-crit-and-type-fixes-to-gameplay-fixes.bps) | [Blue update](../patches/gameplay-fixes/pokesolusblue-auto-box-to-gameplay-fixes.bps) |
 
 Download the patch with GitHub's **Download raw file** button. Apply it with
 [Rom Patcher JS](https://www.marcrobledo.com/RomPatcher.js/) or
@@ -38,6 +40,7 @@ Input ROM checksums:
 | Official Solus 1.5, CRC32 | `4d0b49cb` | `22b4efd5` | `031e86e5` |
 | Earlier critical-hit fix, CRC32 | `df7b71b6` | `86ccaecd` | `3545034f` |
 | Earlier critical-hit and type fixes, CRC32 | `24743609` | `f5452102` | `a921c774` |
+| Earlier automatic box fix, CRC32 | `33a2f3ed` | `b254a8c4` | `83f97551` |
 
 Patch-file SHA-256 checksums are in
 [SHA256SUMS](../patches/gameplay-fixes/SHA256SUMS).
@@ -45,9 +48,11 @@ Patch-file SHA-256 checksums are in
 ## Continue a saved game
 
 Existing Solus 1.5 in-game saves remain compatible, including saves made with
-the earlier critical-hit and type fixes. Existing save fields keep their
-locations, cartridge settings are unchanged, and the original save/load routines
-keep their machine code. No save conversion is needed.
+the earlier critical-hit, type, and automatic box fixes. The game imports the
+old bag into its larger storage area when loading. Money, Pokémon, progress,
+and all other existing save fields keep their locations. Cartridge settings
+and the 32 KiB save-file size are unchanged. No separate save conversion is
+needed.
 
 1. Make an in-game save in your current ROM.
 2. Back up the save file, usually a `.sav` file.
@@ -58,6 +63,28 @@ keep their machine code. No save conversion is needed.
 Emulator save states store the running game and its code addresses. They are
 separate from in-game saves and are not covered by these compatibility checks.
 Use an in-game save when changing ROM versions.
+
+## Larger bag
+
+The bag has 60 slots. This includes key items and TMs, which still use the same
+list as other items. Item use, buying, selling, tossing, swapping, gifts, and
+PC transfers use the larger bag. The limit per stack remains 99.
+
+The larger bag uses 126 bytes from an unused 134-byte gap in the main saved
+data. It stays inside the existing save checksum. A four-byte format marker
+distinguishes it from an old save. When the marker is absent, the loader copies
+the original bag, including item order and quantities, into the new area.
+Loading does not write to the save file. New games start with an empty bag.
+
+Saving also keeps the first 20 slots in the original bag fields, with a valid
+count and terminator. Older ROMs can read those slots, but cannot maintain the
+larger bag. Keep using this build after saving, or restore a backup made before
+the upgrade when returning to an older ROM.
+
+The implementation is in
+[`expanded_bag.asm`](../engine/items/expanded_bag.asm). Only the bag's working
+RAM labels move; every other existing RAM label keeps its address. The original
+save code changes two main-data copy calls to add bag import and storage.
 
 ## Automatic box changes
 
@@ -86,7 +113,7 @@ Once the map and its events are ready, the old full box is written to its
 normal slot. The normal save routine commits the new active box and game
 progress. Box checksums are updated. The temporary area is outside the saved
 game's checksum and was unused in Solus 1.5. A new temporary RAM flag uses an
-existing unused byte. No original RAM or save field moves.
+existing unused byte. The box changes do not move any original RAM or save field.
 
 The implementation is in [`auto_box.asm`](../engine/pokemon/auto_box.asm).
 
@@ -147,6 +174,9 @@ RGBDS version. Keep its `.sym` files beside its ROMs. Run:
     --original-dir /path/to/unmodified-solus-build
 /tmp/solus-tests/bin/python tests/auto_box.py \
     --original-dir /path/to/unmodified-solus-build
+/tmp/solus-tests/bin/python tests/expanded_bag.py \
+    --original-dir /path/to/unmodified-solus-build \
+    --previous-dir /path/to/automatic-box-build
 ```
 
 The effectiveness test runs the compiled damage-adjustment, message-selection,
@@ -176,8 +206,17 @@ before the automatic save. Saves made after a switch also load and save again
 in the original Solus 1.5 ROM. A complete playthrough test uses the real menus,
 capture animation, nickname prompt, box notice, automatic save, and Continue.
 
+The bag tests import empty and full 20-slot saves from official Solus 1.5 and
+the automatic-box build. They fill all 60 slots through the inventory code,
+check stack limits and the unchanged PC limit, remove and combine slots,
+swap the first and last slots, and check new-game setup. A real battle-menu
+playthrough scrolls to slot 60, uses its ball, finishes a capture and automatic
+box save, and checks every remaining item after Continue. Save checks allow
+changes only in the unused bag area and the main checksum when importing an
+old bag; all other saved fields and every PC box must match.
+
 | Updated ROM | CRC32 | SHA-256 |
 | --- | --- | --- |
-| Red | `33a2f3ed` | `cea16b88ff53a4eb8f0dd25fdef073c20e7f790b7ed7a6d0d4def1497bbbc47c` |
-| Green | `b254a8c4` | `9113a0a64f3973d86c824ca0e866802f03ca79e7d935f8cd80702b812fca9f96` |
-| Blue | `83f97551` | `65b25c952bce2e84cbc89616e6fc0ae67940fbcd633a38cd4b2c7547ec365db0` |
+| Red | `ecce1cfd` | `7b80771617aa6f569b9f8466118d545cc3332c61137f8ffcc3af2d04e1ba45f5` |
+| Green | `d318ffd2` | `83576f02f817b6bf6f3f3f57e659ecd6ba5e84b177ef0430c1a45885080e8542` |
+| Blue | `8deec30a` | `77e687849f43f57e623e0e71e8c3f67d5ea694a2d1f00b876d1dee9f7a5c51f4` |

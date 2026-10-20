@@ -16,8 +16,6 @@ InitPlayerData2:
 	call InitializeEmptyList
 	ld hl, wBoxCount
 	call InitializeEmptyList
-	ld hl, wNumBagItems
-	call InitializeEmptyList
 	ld hl, wNumBoxItems
 	call InitializeEmptyList
 
@@ -44,6 +42,7 @@ DEF START_MONEY EQU $3000
 	ld hl, wGameProgressFlags
 	ld bc, wGameProgressFlagsEnd - wGameProgressFlags
 	call FillMemory ; clear all game progress flags
+	farcall InitExpandedBag
 
 	jp InitializeMissableObjectsFlags
 
